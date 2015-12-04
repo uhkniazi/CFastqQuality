@@ -12,8 +12,11 @@ csPath = file.choose()
 
 ob = CFastqQuality(csPath, sample.name = 'SRR850132_2.fastq')
 
-CFastqQuality.plot.cycle(ob)
+plot.alphabetcycle(ob)
+plot.qualitycycle(ob)
+plot.recurrentreads(ob)
 
+l = lBlastRecurrentSequences(ob, n=2, timeout=100000)
 
 
 fls <- dir(path = '../temp/RNASeq/20151110/FASTQ/', pattern = "*fastq.gz", full=TRUE)

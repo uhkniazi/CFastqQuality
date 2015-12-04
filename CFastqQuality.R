@@ -19,7 +19,8 @@ library(ShortRead)
 # declare class to load fastq file 
 setClass('CFastqQuality', slots = list(csFastqFile='character', 
                                        csSampleName = 'character',
-                                       sreads='ShortReadQ'))#,
+                                       sreads='ShortReadQ',
+                                       qa='ShortReadQQA'))#,
 #contains = 'ShortReadQ')
 
 # define constructor
@@ -35,7 +36,8 @@ CFastqQuality = function(file.name, sample.name, sample.size=200000, iSeed=123){
   set.seed(iSeed)
   fqSample = yield(sampler)
   close(sampler)
-  new('CFastqQuality', csFastqFile=file.name, csSampleName=sample.name, sreads=fqSample)
+  q = qa(fqSample, lane=sample.name)
+  new('CFastqQuality', csFastqFile=file.name, csSampleName=sample.name, sreads=fqSample, qa=q)
 }
 
 # accessor function
@@ -43,42 +45,76 @@ CFastqQuality.getFileName = function(obj) obj@csFastqFile
 CFastqQuality.getSampleName = function(obj) obj@csSampleName
 CFastqQuality.getShortReadQData = function(obj) obj@sreads
 
-# utility and operations
-CFastqQuality.mAlphabetByCycle = function(obj){
+
+setGeneric('mGetAlphabetByCycle', function(obj, clean=T)standardGeneric('mGetAlphabetByCycle'))
+setMethod('mGetAlphabetByCycle', signature = 'CFastqQuality', definition = function(obj, clean=T){
   fqSample = CFastqQuality.getShortReadQData(obj)
   # remove Ns
-  fqSample = clean(fqSample)
+  if (clean) fqSample = clean(fqSample)
   m = (alphabetByCycle(sread(fqSample)))
   return(m)
-}
+})
 
-# plot the data
-CFastqQuality.plot.cycle = function(obj){
-  m = CFastqQuality.mAlphabetByCycle(obj)
+
+
+# various plots
+setGeneric('plot.alphabetcycle', function(obj, ...)standardGeneric('plot.alphabetcycle'))
+setMethod('plot.alphabetcycle', signature = 'CFastqQuality', definition = function(obj, ...){
+  m = mGetAlphabetByCycle(obj)
   m = t(m)
   m = m[,c('A', 'T', 'G', 'C')]
   x = 1:nrow(m)
   matplot(x, m, type='l', main=paste(obj@csSampleName, '- Per base sequence content')
           , xlab='Position in read', ylab='Base count', 
-          lty=1:4, col=1, xaxt='n', lwd=2)
-  axis(side = 1, at = seq(0, length(x), by = 10))
+          lty=1:4, col=1, xaxt='n', lwd=2, ...)
+  axis(side = 1, at = seq(0, length(x), by = 5))
   legend('bottomright', legend=paste(colnames(m)), lty=1:4, col=1, lwd=2)
-}
+})
 
-# generic functions
-# setGeneric('print', def = function(obj) standardGeneric('print'))
-# setMethod('print', signature='CFastqQuality', definition = function(obj){
-#   print(obj@csFastqFile)
-#   print(obj@csSampleName)
-#   print(obj@sreads)
-#   print('test')
-#   getClass('CFastqQuality')
-# })
-# 
-# setGeneric('plot', def = function(obj) standardGeneric('plot'))
-# setMethod('plot', signature='CFastqQuality', definition = function(obj){
-#   CFastqQuality.plot.cycle(obj)
-# })
+
+setGeneric('plot.recurrentreads', function(obj, n=50, ...)standardGeneric('plot.recurrentreads'))
+setMethod('plot.recurrentreads', signature = 'CFastqQuality', definition = function(obj, n=50, ...){
+  tb = lGetRecurrentSequences(obj, n=n)
+  d = tb$distribution
+  plot(log10(d$nOccurrences), log10(d$nReads), xlab='log10 No. of Occurrences',
+       ylab='log10 No. of Reads', pch=20, main=paste(obj@csSampleName, '- Recurrent reads'), ...)
+})
+
+setGeneric('plot.qualitycycle', function(obj, ...)standardGeneric('plot.qualitycycle'))
+setMethod('plot.qualitycycle', signature = 'CFastqQuality', definition = function(obj, ...){
+  m = mGetReadQualityByCycle(obj)
+  m = colMeans(m)
+  plot(m, type='l', xlab='Position in Read', ylab='Mean Score', xaxt='n', 
+       main=paste(obj@csSampleName, '- Per base quality'), lwd=2, ...)
+  axis(side = 1, at = seq(0, length(m), by = 5))
+})
+
+# various metrics
+setGeneric('lGetRecurrentSequences', function(obj, ...)standardGeneric('lGetRecurrentSequences'))
+setMethod('lGetRecurrentSequences', signature = 'CFastqQuality', definition = function(obj, ...){
+  return(tables(sread(CFastqQuality.getShortReadQData(obj)), ...))
+})
+
+setGeneric('lBlastRecurrentSequences', function(obj, n=5, warn=T, ...)standardGeneric('lBlastRecurrentSequences'))
+setMethod('lBlastRecurrentSequences', signature = 'CFastqQuality', definition = function(obj, n=5, warn=T, ...){
+  if (n > 5 && warn) stop(paste('Too many sequences i.e. n > 5, set warn = FALSE to ignore warning'))
+  if(!require(annotate)) stop('Bioconductor library annotate required')
+  tb = lGetRecurrentSequences(obj, n=n)
+  seq = names(tb$top)
+  lRet = vector('list', length = n)
+  for (i in 1:n) {
+    lRet[[i]] = blastSequences(seq[i], as='data.frame', ...)  
+  }
+  return(lRet)
+})
+
+
+setGeneric('mGetReadQualityByCycle', function(obj, ...)standardGeneric('mGetReadQualityByCycle'))
+setMethod('mGetReadQualityByCycle', signature = 'CFastqQuality', definition = function(obj, ...){
+  # get the quality score in a numeric form
+  return(as(obj@sreads@quality, 'matrix'))
+})
+
 
 
 ########### end class CFastqQuality
