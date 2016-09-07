@@ -20,7 +20,8 @@ library(ShortRead)
 setClass('CFastqQuality', slots = list(csFastqFile='character', 
                                        csSampleName = 'character',
                                        sreads='ShortReadQ',
-                                       qa='ShortReadQQA'))#,
+                                       qa='ShortReadQQA',
+                                       iReadCount='numeric'))#,
 #contains = 'ShortReadQ')
 
 # define constructor
@@ -37,13 +38,39 @@ CFastqQuality = function(file.name, sample.name, sample.size=200000, iSeed=123){
   fqSample = yield(sampler)
   close(sampler)
   q = qa(fqSample, lane=sample.name)
-  new('CFastqQuality', csFastqFile=file.name, csSampleName=sample.name, sreads=fqSample, qa=q)
+  
+  ### internal function to calculate read count in the fastq file
+  getReadCount = function(obj) {
+    # if number of reads is 0, then it needs to be calculated
+    rc = obj@iReadCount
+    if (rc == 0) {
+      # check the file type i.e. ascii or compressed and calculate number of reads
+      com = paste('file', obj@csFastqFile)
+      ftype = system(com, intern = T)
+      if (grepl('gzip compressed data', ftype)){
+        com = paste('zcat', obj@csFastqFile, '| echo $((`wc -l`/4))')
+        rc = system(com, intern = T)
+        rc = as.numeric(rc)
+      } else if (grepl('ASCII text', ftype)) {
+        com = paste('cat', obj@csFastqFile, '| echo $((`wc -l`/4))')
+        rc = system(com, intern = T)
+        rc = as.numeric(rc)
+      } else {stop('CFastqQuality.getReadCount: file type not gzip or ASCII text\n')}
+    }
+    return(rc)
+  }
+  
+  obj = new('CFastqQuality', csFastqFile=file.name, csSampleName=sample.name, sreads=fqSample, qa=q, iReadCount=0)
+  obj@iReadCount = getReadCount(obj)
+  return(obj)
 }
 
 # accessor function
 CFastqQuality.getFileName = function(obj) obj@csFastqFile
 CFastqQuality.getSampleName = function(obj) obj@csSampleName
 CFastqQuality.getShortReadQData = function(obj) obj@sreads
+CFastqQuality.getReadCount = function(obj) obj@iReadCount
+
 
 
 setGeneric('mGetAlphabetByCycle', function(obj, clean=T)standardGeneric('mGetAlphabetByCycle'))
