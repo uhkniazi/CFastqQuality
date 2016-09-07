@@ -110,7 +110,7 @@ setMethod('plot.recurrentreads', signature = 'CFastqQuality', definition = funct
 setGeneric('plot.qualitycycle', function(obj, ...)standardGeneric('plot.qualitycycle'))
 setMethod('plot.qualitycycle', signature = 'CFastqQuality', definition = function(obj, ...){
   m = mGetReadQualityByCycle(obj)
-  m = colMeans(m)
+  m = colMeans(m, na.rm = T)
   plot(m, type='l', xlab='Position in Read', ylab='Mean Score', xaxt='n', 
        main=paste(obj@csSampleName, '- Per base quality'), lwd=2, ...)
   axis(side = 1, at = seq(0, length(m), by = 5))
