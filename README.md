@@ -14,21 +14,26 @@ csFastqFile = character
 csSampleName = character  
 sreads = ShortReadQ object  
 qa = ShortReadQQA
+iReadCount = number of reads in fastq file
 
 ## Constructor
 CFastqQuality  
-### Arguments
+**Arguments**  
 file.name = path to the fastq file  
 sample.name = character string name to use as label for fastq sample  
 sample.size = 200000 (default size)  
-iSeed = 123 (default)
-### value / returns  
+iSeed = 123 (default)  
+**value / returns**  
 object CFastqQuality  
+  
+**DECS**  
+Creates the object, however it uses the internal function *getReadCount* which checks if the file is a text ASCII format or GZIP format, and uses bash shell commands to calculate file size. This however is a slow process and patience is required.
 
 ## Slot accessor functions
-### CFastqQuality.getFileName
-### CFastqQuality.getSampleName
-### CFastqQuality.getShortReadQData
+1. CFastqQuality.getFileName
+2. CFastqQuality.getSampleName
+3. CFastqQuality.getShortReadQData
+4. CFastqQuality.getReadCount
 
 # Functions
 ## mGetAlphabetByCycle
@@ -85,6 +90,20 @@ list of data.frames where each data.frame is the blast result for each sequence.
 obj = object of class CFastqQuality  
 ### RETS
 matrix of read quality by cycle. Can be a very large matrix where rows = number of reads sampled.  
+
+## iGetReadWidth
+### ARGS
+obj = object of class CFastqQuality 
+clean = default (T) - if to remove reads with Ns  
+### RETS
+integer vector to with width of the sampled reads
+
+## write.html.report
+### ARGS
+obj = object of class CFastqQuality 
+dest = destination directory 
+### RETS
+writes the html report in the folder using the ShortRead library QA function.  
 
 
 
