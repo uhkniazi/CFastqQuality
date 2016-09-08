@@ -91,6 +91,13 @@ setMethod('iGetReadWidth', signature = 'CFastqQuality', definition = function(ob
   return(m)
 })
 
+
+setGeneric('write.html.report', function(obj, dest, ...)standardGeneric('write.html.report'))
+setMethod('write.html.report', signature = 'CFastqQuality', definition = function(obj, dest, ...){
+  report(obj@qa, dest = dest)
+})
+
+
 # various plots
 setGeneric('plot.alphabetcycle', function(obj, ...)standardGeneric('plot.alphabetcycle'))
 setMethod('plot.alphabetcycle', signature = 'CFastqQuality', definition = function(obj, ...){
