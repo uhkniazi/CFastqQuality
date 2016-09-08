@@ -55,7 +55,7 @@ CFastqQuality = function(file.name, sample.name, sample.size=200000, iSeed=123){
         com = paste('cat', obj@csFastqFile, '| echo $((`wc -l`/4))')
         rc = system(com, intern = T)
         rc = as.numeric(rc)
-      } else {stop('CFastqQuality.getReadCount: file type not gzip or ASCII text\n')}
+      } else {warning('CFastqQuality.getReadCount: file type not gzip or ASCII text, can not count reads\n')}
     }
     return(rc)
   }
@@ -82,7 +82,14 @@ setMethod('mGetAlphabetByCycle', signature = 'CFastqQuality', definition = funct
   return(m)
 })
 
-
+setGeneric('iGetReadWidth', function(obj, clean=T)standardGeneric('iGetReadWidth'))
+setMethod('iGetReadWidth', signature = 'CFastqQuality', definition = function(obj, clean=T){
+  fqSample = CFastqQuality.getShortReadQData(obj)
+  # remove Ns
+  if (clean) fqSample = clean(fqSample)
+  m = width(fqSample)
+  return(m)
+})
 
 # various plots
 setGeneric('plot.alphabetcycle', function(obj, ...)standardGeneric('plot.alphabetcycle'))
