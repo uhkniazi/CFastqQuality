@@ -156,6 +156,121 @@ setMethod('mGetReadQualityByCycle', signature = 'CFastqQuality', definition = fu
   return(as(obj@sreads@quality, 'matrix'))
 })
 
-
-
 ########### end class CFastqQuality
+
+############ container class for CFastqQuality class to handle a list of files from multiple samples
+# Name: CFastqQualityBatch
+# Desc: the class provides easy functions to load and sample from multiple fastq files
+#       the reads are stored in CFastqQuality class objects
+# Slot: csFastqFiles = character string to hold fastq file names, mapping to file path
+#     : csSampleNames = character string to hold sample names
+#     : fReadDirection = factor to hold read direction forward = 1, reverse = 2
+#     : lData = list to hold individual CFastqQuality objects, one for each file
+#     : lMeta = list of meta data containing grouping factors and tables
+
+
+# declare class to load fastq file 
+setClass('CFastqQualityBatch', slots = list(csFastqFiles='character', 
+                                       csSampleNames = 'character',
+                                       fReadDirection='factor',
+                                       lData='list',
+                                       lMeta='list'))
+
+
+# object constructor
+CFastqQualityBatch = function(file.paths, sample.names, fReadDirection, lMetaData=list()){
+  ### perform some error checks
+  if (!all(file.exists(file.paths))) stop('CFastqQualityBatch: some or all files in file.paths not found')
+  if (class(fReadDirection) != 'factor') stop('CFastqQualityBatch: fReadDirection is a factor with 2 levels, 1 and 2; forward = 1, reverse = 2')
+  if (!all(levels(fReadDirection) %in% c('1', '2'))) stop('CFastqQualityBatch: fReadDirection is a factor with 2 levels, 1 and 2; forward = 1, reverse = 2')
+  if (class(lMetaData) != 'list') stop('CFastqQualityBatch: lMetaData is a an object of type list')
+  if (any(duplicated(sample.names))) stop('CFastqQualityBatch: Sample names for each file should be unique')
+  
+  ### read each fastq file in a loop
+  ## function to create cfastqquality objects
+  write.qa = function(fls, title){
+    cat(paste('reading', title, '... '))
+    ob = CFastqQuality(fls, title)
+    cat(paste('done', title, '\n'))
+    return(ob)
+  }
+  
+  ivFilesIndex = seq_along(file.paths)
+  
+  lOb = lapply(ivFilesIndex, function(x){
+    tryCatch(write.qa(file.paths[x], sample.names[x]), error=function(e) NULL)
+  })
+  
+  names(lOb) = sample.names
+  
+  ob = new('CFastqQualityBatch', csFastqFiles=file.paths,
+             csSampleNames=sample.names,
+             fReadDirection=fReadDirection,
+             lData=lOb,
+             lMeta=lMetaData)
+  return(ob)
+}  ## end constructor
+
+## slot accessor functions
+CFastqQualityBatch.getMetaData = function(obj) obj@lMeta
+
+############################## analysis and plotting related functions
+setGeneric('iGetReadCount', function(obj)standardGeneric('iGetReadCount'))
+setMethod('iGetReadCount', signature = 'CFastqQualityBatch', definition = function(obj){
+  iReadCount = sapply(obj@lData, CFastqQuality.getReadCount)
+  iReadCount = iReadCount/1e+6
+  return(iReadCount)
+})
+
+setGeneric('barplot.readcount', function(obj, ...)standardGeneric('barplot.readcount'))
+setMethod('barplot.readcount', signature = 'CFastqQualityBatch', definition = function(obj, ...){
+  barplot(iGetReadCount(obj), las=2, main='Read Count', ylab = 'No. of Reads in Millions', cex.names =0.8, col=grey.colors(2))
+})
+
+setMethod('mGetReadQualityByCycle', signature = 'CFastqQualityBatch', definition = function(obj, ...){
+  mQuality = sapply(obj@lData, function(x){
+    m = mGetReadQualityByCycle(x)
+    m = colMeans(m, na.rm = T)
+    return(m)
+  })
+  return(mQuality)
+})
+
+setMethod('plot.qualitycycle', signature = 'CFastqQualityBatch', definition = function(obj, ...){
+  matplot(mGetReadQualityByCycle(obj), type='l', main='Base quality', ylab = 'Mean Score', xlab='Position in Read')
+})
+
+setMethod('plot.alphabetcycle', signature = 'CFastqQualityBatch', definition = function(obj, ...){
+  ## plot all the alphabets by cycle for each forward and reverse reads
+  i = grep('1', obj@fReadDirection)
+  
+  lAlphabets = lapply(i, function(x){
+    m = t(mGetAlphabetByCycle(obj@lData[[x]]))
+    m = m[,c('A', 'T', 'G', 'C')]
+    r = rowSums(m)
+    m = sweep(m, 1, r, '/')
+    return(m)
+  })
+  
+  matplot(lAlphabets[[1]], type='l', main='Sequence Content - Forward Strands', ylab = 'Proportion of Base count', xlab='Position in Read')
+  temp = lapply(lAlphabets[-1], function(x)
+    matlines(x, type='l'))
+  legend('topleft', legend = colnames(lAlphabets[[1]]), lty=1:4, col=1:4, ncol=2, lwd=2)
+  
+  # reverse strands
+  i = grep('2', obj@fReadDirection)
+  
+  lAlphabets = lapply(i, function(x){
+    m = t(mGetAlphabetByCycle(obj@lData[[x]]))
+    m = m[,c('A', 'T', 'G', 'C')]
+    r = rowSums(m)
+    m = sweep(m, 1, r, '/')
+    return(m)
+  })
+  
+  matplot(lAlphabets[[1]], type='l', main='Sequence Content - Reverse Strands', ylab = 'Proportion of Base count', xlab='Position in Read')
+  temp = lapply(lAlphabets[-1], function(x)
+    matlines(x, type='l'))
+  legend('topleft', legend = colnames(lAlphabets[[1]]), lty=1:4, col=1:4, ncol=2, lwd=2)
+})
+
