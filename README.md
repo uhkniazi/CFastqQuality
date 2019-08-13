@@ -119,7 +119,7 @@ The class extends the functionality of the CFastqQuality class by acting as a co
 
 
 ### Constructor:  
-####CFastqQualityBatch
+#### CFastqQualityBatch  
 **Args:**  
 **file.paths**  
 **sample.names**  
