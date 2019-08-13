@@ -105,6 +105,33 @@ dest = destination directory
 ### RETS
 writes the html report in the folder using the ShortRead library QA function.  
 
+--- 
+# CFastqQualityBatch  
+### Description:  
+The class extends the functionality of the CFastqQuality class by acting as a container that can hold multiple objects of CFastqQuality class. This will usually be used in a setting where the files are all in one folder and are part of a single experiment.  
+
+### Slots:  
+**csFastqFiles** = character string to hold fastq file names, mapping to file path  
+**csSampleNames** = character string to hold sample names  
+**fReadDirection** = factor to hold read direction forward = 1, reverse = 2  
+**lData** = list to hold individual CFastqQuality objects, one for each file  
+**lMeta** = list of meta data containing grouping factors and tables  
+
+
+### Constructor:  
+####CFastqQualityBatch
+**Args:**  
+**file.paths**  
+**sample.names**  
+**fReadDirection**  
+**lMetaData** default=list() - an empty list
+
+### Functions:  
+1. **iGetReadCount** returns the read count in millions.  
+2. **barplot.readcount** bar plots of the read count in millions.  
+3. **mGetReadQualityByCycle** returns a matrix of average read quality by cycle for each sample.  
+4. **plot.qualitycycle** plots the quality by cycle plots for all samples.
+5. **plot.alphabetcycle** makes 2 plots (forward and reverse) reads with all samples.  
 
 
 
