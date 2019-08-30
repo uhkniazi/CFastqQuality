@@ -1,5 +1,5 @@
-# CFastqQuality
-Utility class using Bioconductor libraries to check quality parameters of a FASTQ file.
+# CFastqQuality & CFastqQualityBatch
+Utility classes using Bioconductor libraries to check quality parameters of a FASTQ file or a batch of FASTQ files.
 
 
 # Class CFastqQuality
@@ -27,7 +27,7 @@ iSeed = 123 (default)
 object CFastqQuality  
   
 **DECS**  
-Creates the object, however it uses the internal function *getReadCount* which checks if the file is a text ASCII format or GZIP format, and uses bash shell commands to calculate file size. This however is a slow process and patience is required.
+Creates the object, however it uses the internal function *getReadCount* which checks if the file is a text ASCII format or GZIP format, and uses **bash shell** commands to calculate file size. This however is a slow process and patience is required. This functionality has only been tested in linux.  
 
 ## Slot accessor functions
 1. CFastqQuality.getFileName
